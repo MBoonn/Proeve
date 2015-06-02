@@ -11,12 +11,14 @@ public class Unit : MonoBehaviour {
 	public UnitFactions unitFaction;
 
 	public GameManager gameManager;
+	public Grid currentGrid;
 
 	public int baseHealt;
-	public int totalHealt;
-	public int totalDamage;
+	public float totalHealt;
+	public float elementDamageMultiplier;
+	public float positionDamageMultiplier = 1;
 	public int baseAttack;
-	public int totalAttack;
+	public float totalAttack;
 	public Unit attackTarget;
 	public bool isInAttackRange = false;
 	public int moveRange;
@@ -30,15 +32,19 @@ public class Unit : MonoBehaviour {
     Vector3[] path;
     int targetIndex;
 	public bool pathFollowing = false;
+	public Node nodeUnitIsStandingOn;
+	public GameObject selectCrystal;
+	public Animation unitModelAnimation;
 
-	public void Awake(){
+	public void Start(){
 		setUnitType();
 		totalHealt = baseHealt;
+		nodeUnitIsStandingOn = GetNodeFromUnitPosition(transform.position);
 	}
 
     public void UnitUpdate()
     {
-		if(!hasMoved){
+		if(!hasMoved && gameObject.activeSelf){
 			if( path == null && !(transform.position.x == target.position.x && transform.position.y == target.position.y)){
 				StopCoroutine("FollowPath");
 	        	PathRequestManager.RequestPath(transform.position, target.position, OnPathFound);
@@ -52,8 +58,10 @@ public class Unit : MonoBehaviour {
 				StopCoroutine("FollowPath");
 				pathFollowing = false;
 				hasMoved = true;
+				nodeUnitIsStandingOn = GetNodeFromUnitPosition(transform.position);
 				enemyUnitIsDone = false;
 				path = null;
+				unitModelAnimation.Play("idl");
 			}
 		}
 	}
@@ -85,15 +93,22 @@ public class Unit : MonoBehaviour {
 						targetIndex = 0;
 	                    yield break;
 	                }
+
 	                currentWaypoint = path[targetIndex];
 					fixedWaypointPosition = new Vector3(currentWaypoint.x, currentWaypoint.y + transform.position.y, currentWaypoint.z);
 	            }
-
+				unitModelAnimation.Play("walk");
 	            transform.position = Vector3.MoveTowards(transform.position,fixedWaypointPosition,movementSpeed * Time.deltaTime);
 				yield return null;
 	        }
 		}
     }
+
+	public Node GetNodeFromUnitPosition(Vector3 _unitPosition){
+		Node tempNode;
+		tempNode = currentGrid.NodeFromWorldPoint(_unitPosition);
+		return tempNode;
+	}
 
 	public void setUnitType()
 	{
@@ -120,6 +135,85 @@ public class Unit : MonoBehaviour {
 			moveRange = 3;
 			break;
 		}
+	}
+
+	public float DamageCalculation(Unit _SelectedUnit, UnitElements _SelectedUnitElement, UnitElements _enemyUnitElement){
+		switch(_SelectedUnitElement)
+		{
+		case UnitElements.air:
+			if(_enemyUnitElement == UnitElements.air)
+				_SelectedUnit.elementDamageMultiplier = 1;
+			if(_enemyUnitElement == UnitElements.earth)
+				_SelectedUnit.elementDamageMultiplier = 0.5f;
+			if(_enemyUnitElement == UnitElements.water)
+				_SelectedUnit.elementDamageMultiplier = 1.5f;
+			if(_enemyUnitElement == UnitElements.fire)
+				elementDamageMultiplier = 0.5f;
+				break;
+		case UnitElements.earth:
+			if(_enemyUnitElement == UnitElements.air)
+				_SelectedUnit.elementDamageMultiplier = 0.5f;
+			if(_enemyUnitElement == UnitElements.earth)
+				_SelectedUnit.elementDamageMultiplier = 1;
+			if(_enemyUnitElement == UnitElements.water)
+				_SelectedUnit.elementDamageMultiplier = 0.5f;
+			if(_enemyUnitElement == UnitElements.fire)
+				_SelectedUnit.elementDamageMultiplier = 1;
+			break;
+		case UnitElements.fire:
+			if(_enemyUnitElement == UnitElements.air)
+				_SelectedUnit.elementDamageMultiplier = 1.5f;
+			if(_enemyUnitElement == UnitElements.earth)
+				_SelectedUnit.elementDamageMultiplier = 0.5f;
+			if(_enemyUnitElement == UnitElements.water)
+				_SelectedUnit.elementDamageMultiplier = 0.5f;
+			if(_enemyUnitElement == UnitElements.fire)
+				_SelectedUnit.elementDamageMultiplier = 1;
+			break;
+		case UnitElements.water:
+			if(_enemyUnitElement == UnitElements.air)
+				_SelectedUnit.elementDamageMultiplier = 0.5f;
+			if(_enemyUnitElement == UnitElements.earth)
+				_SelectedUnit.elementDamageMultiplier = 1;
+			if(_enemyUnitElement == UnitElements.water)
+				_SelectedUnit.elementDamageMultiplier = 1;
+			if(_enemyUnitElement == UnitElements.fire)
+				_SelectedUnit.elementDamageMultiplier = 1.5f;
+			break;
+		}
+
+		switch(nodeUnitIsStandingOn.nodeType)
+		{
+		case 0:
+			_SelectedUnit.positionDamageMultiplier = 1;
+			break;
+		case 1:
+			if(_SelectedUnitElement == UnitElements.fire)
+				_SelectedUnit.positionDamageMultiplier = 1.5f;
+			else
+				_SelectedUnit.positionDamageMultiplier = 1;
+			break;
+		case 2:
+			if(_SelectedUnitElement == UnitElements.water)
+				_SelectedUnit.positionDamageMultiplier = 1.5f;
+			else
+				_SelectedUnit.positionDamageMultiplier = 1;
+			break;
+		case 3:
+			if(_SelectedUnitElement == UnitElements.earth)
+				_SelectedUnit.positionDamageMultiplier = 1.5f;
+			else
+				_SelectedUnit.positionDamageMultiplier = 1;
+			break;
+		case 4:
+			if(_SelectedUnitElement == UnitElements.air)
+				_SelectedUnit.positionDamageMultiplier = 1.5f;
+			else
+				_SelectedUnit.positionDamageMultiplier = 1;
+			break;
+		}
+		float tempDamage = _SelectedUnit.baseAttack * _SelectedUnit.positionDamageMultiplier;
+		return tempDamage * _SelectedUnit.elementDamageMultiplier;
 	}
 
     public void OnDrawGizmos()

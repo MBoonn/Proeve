@@ -3,13 +3,16 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class Grid : MonoBehaviour {
+
+	public LevelData levelData;
     public bool onlyDisplayGridGizmos;
 	public Transform nodePrefab;
 
     public LayerMask unwalkableMask;
     public Vector2 gridWorldSize;
     public float nodeRadius;
-    Node[,] grid;
+	Node[,] grid;
+
 
     float nodeDiameter;
     int gridSizeX, gridSizeY;
@@ -41,7 +44,7 @@ public class Grid : MonoBehaviour {
             {
                 Vector3 worldPoint = worldBottemLeft + Vector3.right * (x*nodeDiameter+nodeRadius)+ Vector3.forward*(y*nodeDiameter+nodeRadius);
                 bool walkable = !(Physics.CheckSphere(worldPoint,nodeRadius,unwalkableMask));
-                grid[x,y] = new Node(walkable,worldPoint, x,y,nodePrefab);
+                grid[x,y] = new Node(walkable,worldPoint, x,y,nodePrefab,SetNodeType(x,y));
             }
         }
     }
@@ -97,6 +100,11 @@ public class Grid : MonoBehaviour {
         return grid[x, y];
 
     }
+
+	public int SetNodeType(int _x, int _y){
+		int tempNodeType = levelData.girdlevelData[_x,_y];
+		return tempNodeType;
+	}/**/
 
     void OnDrawGizmos()
     {

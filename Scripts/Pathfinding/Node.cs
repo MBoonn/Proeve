@@ -16,8 +16,9 @@ public class Node : IHeapItem<Node> {
 	public Object nodePrefab;
 	public GameObject node;
 	public NodeStates nodeState;
+	public int nodeType;
 
-    public Node(bool _walkable, Vector3 _worldPos, int _gridX, int _gridY , Transform _nodePrefab)
+    public Node(bool _walkable, Vector3 _worldPos, int _gridX, int _gridY , Transform _nodePrefab,int _nodeType)
     {
 		nodePrefab = _nodePrefab;
 
@@ -25,8 +26,9 @@ public class Node : IHeapItem<Node> {
         worldPosition = _worldPos;
         gridX = _gridX;
         gridY = _gridY;
+		nodeType = _nodeType;
 		if(walkable){
-			node = Transform.Instantiate(nodePrefab,worldPosition,Quaternion.identity) as GameObject;
+			ChangeNodeType(nodeType);
 		}
     }
 
@@ -59,4 +61,24 @@ public class Node : IHeapItem<Node> {
         }
         return -compare;
     }
+
+	public void ChangeNodeType(int _nodeType){
+		switch(_nodeType){
+		case 0:
+			node = Transform.Instantiate(nodePrefab,worldPosition,Quaternion.identity) as GameObject;
+			break;
+		case 1:
+			node = Transform.Instantiate(Resources.Load("Tile_Fire"),worldPosition,Quaternion.identity) as GameObject;
+			break;
+		case 2:
+			node = Transform.Instantiate(Resources.Load("Tile_Water"),worldPosition,Quaternion.identity) as GameObject;
+			break;
+		case 3:
+			node = Transform.Instantiate(Resources.Load("Tile_Earth"),worldPosition,Quaternion.identity) as GameObject;
+			break;
+		case 4:
+			node = Transform.Instantiate(Resources.Load("Tile_Air"),worldPosition,Quaternion.identity) as GameObject;
+			break;
+		}
+	}
 }

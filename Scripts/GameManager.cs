@@ -8,7 +8,7 @@ public class GameManager : MonoBehaviour {
 
 	public CamControl cameraControleScript;
 	//public ScreenManger screenManger;
-	public List<Unit> playerUnits =  new List<Unit>();
+	public Unit[] playerUnits;
 	public Unit[] enemyUnits;
 
 	public Transform selectedUnit;
@@ -55,10 +55,12 @@ public class GameManager : MonoBehaviour {
 				if(enemyUnits[i].hasMoved == false)
 				{
 					if(enemyTargetToMoveTo == null){
-						for(int j = 0; j<playerUnits.Count;j++){
-							enemyUnits[i].isInAttackRange = CheckInRange(enemyUnits[i].transform, playerUnits[j].transform);
-							if(enemyUnits[i].isInAttackRange && !enemyUnits[i].hasAttacked)
-								Attack(enemyUnits[i], playerUnits[j]);
+						for(int j = 0; j<playerUnits.Length;j++){
+							if(playerUnits[j].gameObject.activeSelf){
+								enemyUnits[i].isInAttackRange = CheckInRange(enemyUnits[i].transform, playerUnits[j].transform);
+								if(enemyUnits[i].isInAttackRange && !enemyUnits[i].hasAttacked)
+									Attack(enemyUnits[i], playerUnits[j]);
+							}
 						}
 						enemyTargetToMoveTo = SetTargetForEnemyUnit(enemysGoal);
 						enemyUnits[i].target = enemyTargetToMoveTo as Transform;
@@ -80,7 +82,7 @@ public class GameManager : MonoBehaviour {
 				enemyTargetToMoveTo = null;
 				for(int i =0;i<enemyUnits.Length;i++)
 				{
-					for(int j = 0; j<playerUnits.Count;j++){
+					for(int j = 0; j<playerUnits.Length;j++){
 						if(!enemyUnits[i].isInAttackRange)
 							enemyUnits[i].isInAttackRange = CheckInRange(enemyUnits[i].transform, playerUnits[j].transform);
 						if(enemyUnits[i].isInAttackRange && !enemyUnits[i].hasAttacked)
@@ -100,15 +102,25 @@ public class GameManager : MonoBehaviour {
 		if (Physics.Raycast(ray, out hit))
 		{
 			print (hit.collider.name);
-			if(hit.collider.tag == "Unit Friendly")
+			if(hit.collider.tag == "Unit Friendly"){
 				selectedUnit = hit.collider.gameObject.transform;
+				selectedUnit.GetComponent<Unit>().selectCrystal.SetActive(true);
+			}
 		}
 	}
 
 	public void DeselectUnit()
 	{
-		selectedUnit = null;
-		targetToMoveTo = null;
+		if(selectedUnit){
+			selectedUnit.GetComponent<Unit>().unitModelAnimation.Play("idl");
+			selectedUnit.GetComponent<Unit>().selectCrystal.SetActive(false);
+			if(attackTarget){
+				attackTarget.GetComponent<Unit>().selectCrystal.SetActive(false);
+				attackTarget = null;
+			}
+			selectedUnit = null;
+			targetToMoveTo = null;
+		}
 		/*Ray ray;
 		RaycastHit hit;
 		ray = cameraControleScript.currentCamera.ScreenPointToRay(Input.mousePosition);
@@ -158,13 +170,13 @@ public class GameManager : MonoBehaviour {
 			if(hit.collider.tag == "Unit Enemy"){
 				selectedPlayerUnit.attackTarget = hit.collider.GetComponent<Unit>();
 				attackTarget = hit.collider.transform;
+				attackTarget.GetComponent<Unit>().selectCrystal.SetActive(true);
 				selectedPlayerUnit.isInAttackRange = CheckInRange(selectedUnit.transform, hit.collider.transform);
 			}
 		}
 	}
 
 	public bool CheckInRange(Transform _selectedUnit, Transform _attackTarget){
-		print ((_selectedUnit.position-_attackTarget.position).magnitude);
 		if((_selectedUnit.position-_attackTarget.position).magnitude < 4){
 			print ("in range");
 			return true;
@@ -176,9 +188,37 @@ public class GameManager : MonoBehaviour {
 	}
 
 	public void Attack(Unit _selectedUnit, Unit _attackTarget){
-		_attackTarget.totalHealt = _attackTarget.totalHealt - _selectedUnit.baseAttack;
-		_attackTarget.totalDamage = _attackTarget.totalDamage + _selectedUnit.baseAttack; 
+		_selectedUnit.unitModelAnimation.Play("attack");
+		_attackTarget.unitModelAnimation.Play("hit");
+		_selectedUnit.totalAttack = _selectedUnit.DamageCalculation(_selectedUnit, _selectedUnit.unitElement, _attackTarget.unitElement);
+		print (_selectedUnit.totalAttack);
+		_attackTarget.totalHealt = _attackTarget.totalHealt - _selectedUnit.totalAttack;
 		_selectedUnit.hasAttacked = true;
+		_attackTarget.selectCrystal.SetActive(false);
+		if(_selectedUnit.unitModelAnimation.isPlaying){
+			_selectedUnit.unitModelAnimation.Play("idl");
+			_attackTarget.unitModelAnimation.Play("idl");
+		}
+		_selectedUnit.attackTarget = null;
+		LifeCheck();
+	}
+
+	public void LifeCheck(){
+		for(int i = 0;i<playerUnits.Length;i++)
+		{
+			if(playerUnits[i].totalHealt <=0){
+				playerUnits[i].gameObject.SetActive(false);
+				playerUnits[i].unitModelAnimation.Play("lose");
+			}
+		}
+
+		for(int i = 0;i<enemyUnits.Length;i++)
+		{
+			if(enemyUnits[i].totalHealt <=0){
+				enemyUnits[i].gameObject.SetActive(false);
+				enemyUnits[i].unitModelAnimation.Play("lose");
+			}
+		}
 	}
 
     public void PassOnTurn(Turns _currentTurn)
@@ -190,6 +230,7 @@ public class GameManager : MonoBehaviour {
 				foreach(Unit u in enemyUnits)
                 {
 					u.hasMoved = false;
+					u.hasAttacked = false;
 				}
 				print("Enemys Turn!");
 				currentTurn = Turns.enemysTurn;
