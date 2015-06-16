@@ -35,6 +35,7 @@ public class Unit : MonoBehaviour {
 	public Node nodeUnitIsStandingOn;
 	public GameObject selectCrystal;
 	public Animation unitModelAnimation;
+    public bool atGoal;
 
 	public void Start(){
 		setUnitType();
@@ -50,18 +51,24 @@ public class Unit : MonoBehaviour {
 	        	PathRequestManager.RequestPath(transform.position, target.position, OnPathFound);
 			}
 			else if (!pathFollowing){
+
 				StartCoroutine("FollowPath");
 			}
-			else if ((transform.position.x == target.position.x && transform.position.y == target.position.y) || enemyUnitIsDone){
+			if (transform.position.x == target.position.x && transform.position.y == target.position.y){
 				if(unitFaction == UnitFactions.playerUnit)
 					gameManager.DeselectUnit();
 				StopCoroutine("FollowPath");
 				pathFollowing = false;
 				hasMoved = true;
 				nodeUnitIsStandingOn = GetNodeFromUnitPosition(transform.position);
-				enemyUnitIsDone = false;
 				path = null;
-				unitModelAnimation.Play("idl");
+				if(enemyUnitIsDone){
+					Vector3 tempPos = new Vector3(-0.5f,0.5f,-8.5f);
+					if (this.tag == "Unit Enemy" && this.transform.position == tempPos)
+						atGoal = true;
+					enemyUnitIsDone = false;
+				}
+				//unitModelAnimation.Play("idl");
 			}
 		}
 	}
@@ -87,8 +94,11 @@ public class Unit : MonoBehaviour {
 	                {
 						if(this.tag == "Unit Friendly")
 							target.position = fixedWaypointPosition;
-						else
+						else{
 							enemyUnitIsDone = true;
+							if(target != null)
+								target.position = this.transform.position;
+						}
 						path = null;
 						targetIndex = 0;
 	                    yield break;
@@ -97,7 +107,7 @@ public class Unit : MonoBehaviour {
 	                currentWaypoint = path[targetIndex];
 					fixedWaypointPosition = new Vector3(currentWaypoint.x, currentWaypoint.y + transform.position.y, currentWaypoint.z);
 	            }
-				unitModelAnimation.Play("walk");
+				//unitModelAnimation.Play("walk");
 	            transform.position = Vector3.MoveTowards(transform.position,fixedWaypointPosition,movementSpeed * Time.deltaTime);
 				yield return null;
 	        }
@@ -122,7 +132,7 @@ public class Unit : MonoBehaviour {
 		case UnitTypes.type2:
 			baseHealt = 6;
 			baseAttack = 3;
-			moveRange = 4;
+			moveRange = 3;
 			break;
 		case UnitTypes.type3:
 			baseHealt = 10;
@@ -132,7 +142,7 @@ public class Unit : MonoBehaviour {
 		case UnitTypes.type4:
 			baseHealt = 8;
 			baseAttack = 4;
-			moveRange = 3;
+			moveRange = 4;
 			break;
 		}
 	}

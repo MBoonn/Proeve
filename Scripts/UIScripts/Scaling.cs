@@ -6,14 +6,13 @@ public class Scaling : MonoBehaviour {
     public GameManager gamemanagerScript;
 	public int playerNumber;
     
-
-    void Start()
-    {
-        
-    }
     void Update()
     {
         Image image = GetComponent<Image>();
-        image.fillAmount = (float)gamemanagerScript.playerUnits[playerNumber].totalHealt / (float)gamemanagerScript.playerUnits[playerNumber].baseHealt;
+        if (gamemanagerScript.selectedUnit!= null)
+        {
+            image.fillAmount = (float)gamemanagerScript.selectedUnit.GetComponent<Unit>().totalHealt / (float)gamemanagerScript.selectedUnit.GetComponent<Unit>().baseHealt;
+        }
+        
     }
 }
